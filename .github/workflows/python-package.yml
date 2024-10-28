@@ -12,22 +12,45 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Fetch image name and version
-        id: fetch_vars
-        run: |
-          IMAGE_NAME=$(curl -s <YOUR_IMAGE_NAME_ENDPOINT>)
-          VERSION=$(curl -s <YOUR_VERSION_ENDPOINT>)
-          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-
-      - name: Update nginx deployment image
+      - name: Update  deployment image
         run: |
           yq e '.spec.template.spec.containers[0].image = "${{ env.IMAGE_NAME }}:${{ env.VERSION }}"' -i k8s/deployment.yaml
+
+      - name: Install ArgoCD CLI
+        run: |
+          curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+          chmod +x /usr/local/bin/argocd
+
+      - name: Log in to ArgoCD
+        env:
+          ARGOCD_SERVER: <ARGOCD_SERVER_URL>
+          ARGOCD_USERNAME: <ARGOCD_USERNAME>
+          ARGOCD_PASSWORD: <ARGOCD_PASSWORD>
+        run: |
+          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
+
+      - name: Create ArgoCD Project (if not exists)
+        run: |
+          argocd proj create "${{ env.NAMESPACE }}" || echo "Project already exists"
+
+      - name: Deploy ArgoCD Application
+        run: |
+          argocd app create "${{ env.NAMESPACEAPP_NAME }}" \
+            --project "${{ env.NAMESPACE }}" \
+            --repo https://github.com/FattyHamster/testing_namespace_env \
+            --path k8s \
+            --dest-server https://kubernetes.default.svc \
+            --dest-namespace "${{ env.NAMESPACE }}" \
+            || echo "Application already exists"
+          
+      - name: Sync ArgoCD Application
+        run: |
+          argocd app sync "${{ env.APP_NAME }}"
 
       - name: Commit and push changes
         run: |
           git config --local user.email "your-email@example.com"
           git config --local user.name "GitHub Action"
           git add ./k8s/deployment.yaml
-          git commit -m "Update  deployment image to version ${{ env.VERSION }}"
+          git commit -m "Update deployment image to version ${{ env.VERSION }}"
           git push
