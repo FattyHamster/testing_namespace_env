@@ -1,0 +1,33 @@
+name: Kube Manifest Update
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  update-deployment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Fetch image name and version
+        id: fetch_vars
+        run: |
+          IMAGE_NAME=$(curl -s <YOUR_IMAGE_NAME_ENDPOINT>)
+          VERSION=$(curl -s <YOUR_VERSION_ENDPOINT>)
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+      - name: Update nginx deployment image
+        run: |
+          yq e '.spec.template.spec.containers[0].image = "${{ env.IMAGE_NAME }}:${{ env.VERSION }}"' -i deploy/deployment.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "your-email@example.com"
+          git config --local user.name "GitHub Action"
+          git add ./deploy/deployment.yaml
+          git commit -m "Update  deployment image to version ${{ env.VERSION }}"
+          git push
