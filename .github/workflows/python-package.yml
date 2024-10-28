@@ -22,12 +22,12 @@ jobs:
 
       - name: Update nginx deployment image
         run: |
-          yq e '.spec.template.spec.containers[0].image = "${{ env.IMAGE_NAME }}:${{ env.VERSION }}"' -i deploy/deployment.yaml
+          yq e '.spec.template.spec.containers[0].image = "${{ env.IMAGE_NAME }}:${{ env.VERSION }}"' -i k8s/deployment.yaml
 
       - name: Commit and push changes
         run: |
           git config --local user.email "your-email@example.com"
           git config --local user.name "GitHub Action"
-          git add ./deploy/deployment.yaml
+          git add ./k8s/deployment.yaml
           git commit -m "Update  deployment image to version ${{ env.VERSION }}"
           git push
