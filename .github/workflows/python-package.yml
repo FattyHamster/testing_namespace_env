@@ -30,11 +30,11 @@ jobs:
 
       - name: Log in to ArgoCD
         env:
-          ARGOCD_SERVER: ${{ env.ARGOCD_SERVER_URL }}
-          ARGOCD_USERNAME: ${{ env.ARGOCD_USERNAME }}
-          ARGOCD_PASSWORD: ${{ env.ARGOCD_PASSWORD }}
+          ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER_URL }}
+          ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
+          ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
         run: |
-          argocd login $ARGOCD_SERVER --username $ARGOCD_USERNAME --password $ARGOCD_PASSWORD --insecure
+          argocd login ${{ secrets.ARGOCD_SERVER_URL }} --username  ${{ secrets.ARGOCD_USERNAME }} --password $${{ secrets.ARGOCD_PASSWORD }} --insecure
 
       - name: Create ArgoCD Project (if not exists)
         run: |
